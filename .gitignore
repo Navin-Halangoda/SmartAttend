@@ -1,0 +1,9 @@
+frontend/node_modules
+frontend/.gitignore
+frontend/.env
+backend/.env
+backend/db
+dataset
+.ipynb_checkpoints
+attendece.ipynb
+anaconda_projects
