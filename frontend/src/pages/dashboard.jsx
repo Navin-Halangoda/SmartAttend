@@ -1,9 +1,36 @@
-import { Link, useNavigate } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import api from '../api'
 import { clearAuthSession, getAuthUser } from '../auth'
+import Users from './users'
+import Profile from './profile'
+import RegisterAdmin from './register_admin'
 
 function Dashboard() {
 	const navigate = useNavigate()
 	const user = getAuthUser()
+	const [profileData, setProfileData] = useState(null)
+	const [userCount, setUserCount] = useState(0)
+	const [loading, setLoading] = useState(true)
+	const [activeView, setActiveView] = useState('dashboard')
+
+	useEffect(() => {
+		const fetchData = async () => {
+			try {
+				const profileRes = await api.get('/api/me')
+				setProfileData(profileRes.data)
+
+				const usersRes = await api.get('/api/admins')
+				setUserCount(usersRes.data.length || 0)
+			} catch (err) {
+				console.error('Failed to fetch dashboard data:', err)
+			} finally {
+				setLoading(false)
+			}
+		}
+
+		fetchData()
+	}, [])
 
 	const handleLogout = () => {
 		clearAuthSession()
@@ -14,19 +41,23 @@ function Dashboard() {
 		<main className="min-h-screen bg-background text-text">
 			<nav className="flex items-center justify-between border-b border-slate-200 bg-white px-4 py-3 sm:px-6">
 				<div className="flex items-center gap-3">
-					<div className="flex h-9 w-9 items-center justify-center rounded-lg bg-secondary text-sm font-bold text-white">
-						D
-					</div>
+					<img src="/logoo.png" alt="Logo" className="h-10 w-10 rounded-full object-cover" />
 					<div>
-						<p className="text-sm font-semibold">Demo Logo</p>
-						<p className="text-xs text-slate-500">Attendance Dashboard</p>
+						<p className="text-2xl font-bold text-primary"><span className='text-secondary'>
+Attendance </span>Portal</p>
+						
 					</div>
 				</div>
 
 				<div className="flex items-center gap-3">
-					<div className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-200 text-sm font-semibold text-slate-700">
+					<button
+						type="button"
+						onClick={() => setActiveView('profile')}
+						className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-200 text-sm font-semibold text-slate-700 hover:bg-slate-300"
+						title="Profile"
+					>
 						{(user?.username || 'U').charAt(0).toUpperCase()}
-					</div>
+					</button>
 					<button
 						type="button"
 						onClick={handleLogout}
@@ -43,22 +74,129 @@ function Dashboard() {
 					<div className="space-y-3">
 						<button
 							type="button"
-							className="w-full rounded-xl border border-slate-200 px-4 py-3 text-left text-sm font-semibold text-slate-700 hover:bg-slate-50"
+							onClick={() => setActiveView('dashboard')}
+							className={`w-full rounded-xl px-4 py-3 text-left text-sm font-semibold transition ${
+								activeView === 'dashboard'
+									? 'bg-primary text-white shadow-lg'
+									: 'border border-slate-200 text-slate-700 hover:bg-slate-50'
+							}`}
 						>
-							Demo Button
+							Dashboard
 						</button>
-						<Link
-							to="/register-admin"
-							className="block w-full rounded-xl bg-primary px-4 py-3 text-left text-sm font-semibold text-white shadow-lg shadow-black/20"
+						<button
+							type="button"
+							onClick={() => setActiveView('users')}
+							className={`w-full rounded-xl px-4 py-3 text-left text-sm font-semibold transition ${
+								activeView === 'users'
+									? 'bg-primary text-white shadow-lg'
+									: 'border border-slate-200 text-slate-700 hover:bg-slate-50'
+							}`}
+						>
+							Admins Mangage
+						</button>
+						<button
+							type="button"
+							onClick={() => setActiveView('register')}
+							className={`w-full rounded-xl px-4 py-3 text-left text-sm font-semibold transition ${
+								activeView === 'register'
+									? 'bg-primary text-white shadow-lg'
+									: 'border border-slate-200 text-slate-700 hover:bg-slate-50'
+							}`}
 						>
 							Add Admin
-						</Link>
+						</button>
+						<button
+							type="button"
+							onClick={() => setActiveView('profile')}
+							className={`w-full rounded-xl px-4 py-3 text-left text-sm font-semibold transition ${
+								activeView === 'profile'
+									? 'bg-primary text-white shadow-lg'
+									: 'border border-slate-200 text-slate-700 hover:bg-slate-50'
+							}`}
+						>
+							My Profile
+						</button>
 					</div>
 				</aside>
 
-				<div className="p-6 sm:p-8">
-					<h1 className="text-2xl font-bold">Dashboard</h1>
-					<p className="mt-2 text-sm text-slate-600">Welcome, {user?.username || 'Admin'}.</p>
+				<div className="space-y-6 overflow-y-auto p-6 sm:p-8">
+					{activeView === 'dashboard' && (
+						<>
+							<header>
+								<h1 className="text-3xl font-bold">Dashboard</h1>
+								<p className="mt-2 text-sm text-slate-600">Welcome, {user?.username || 'Admin'}.</p>
+							</header>
+
+							{!loading && (
+								<div className="grid gap-6 md:grid-cols-2">
+									{/* Profile Card */}
+									<div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-lg">
+										<h2 className="text-lg font-bold">Your Profile</h2>
+										<div className="mt-4 space-y-3">
+											<div>
+												<p className="text-xs font-semibold uppercase text-slate-500">First Name</p>
+												<p className="mt-1 text-base font-semibold">{profileData?.first_name}</p>
+											</div>
+											<div>
+												<p className="text-xs font-semibold uppercase text-slate-500">Last Name</p>
+												<p className="mt-1 text-base font-semibold">{profileData?.last_name}</p>
+											</div>
+											<div>
+												<p className="text-xs font-semibold uppercase text-slate-500">Email</p>
+												<p className="mt-1 text-base font-semibold text-slate-700">{profileData?.email}</p>
+											</div>
+											<div>
+												<p className="text-xs font-semibold uppercase text-slate-500">Username</p>
+												<p className="mt-1 text-base font-semibold">{profileData?.username}</p>
+											</div>
+											<button
+												type="button"
+												onClick={() => setActiveView('profile')}
+												className="mt-4 w-full rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-white hover:brightness-110"
+											>
+												Edit Profile
+											</button>
+										</div>
+									</div>
+
+									{/* Stats Card */}
+									<div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-lg">
+										<h2 className="text-lg font-bold">System Stats</h2>
+										<div className="mt-4 space-y-4">
+											<div className="rounded-xl bg-slate-50 p-4">
+												<p className="text-xs font-semibold uppercase text-slate-500">Total Admins</p>
+												<p className="mt-2 text-3xl font-bold text-primary">{userCount}</p>
+											</div>
+											<button
+												type="button"
+												onClick={() => setActiveView('users')}
+												className="block w-full rounded-xl bg-secondary px-4 py-2 text-center text-sm font-semibold text-white hover:brightness-110"
+											>
+												View All Users
+											</button>
+											<button
+												type="button"
+												onClick={() => setActiveView('register')}
+												className="block w-full rounded-xl border border-primary px-4 py-2 text-center text-sm font-semibold text-primary hover:bg-slate-50"
+											>
+												Add New Admin
+											</button>
+										</div>
+									</div>
+								</div>
+							)}
+
+							{loading && (
+								<div className="flex items-center justify-center rounded-2xl border border-slate-200 bg-white p-12">
+									<p className="text-sm text-slate-600">Loading dashboard data...</p>
+								</div>
+							)}
+						</>
+					)}
+
+					{activeView === 'users' && <Users />}
+					{activeView === 'profile' && <Profile />}
+					{activeView === 'register' && <RegisterAdmin />}
 				</div>
 			</section>
 		</main>

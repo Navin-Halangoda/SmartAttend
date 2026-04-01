@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import api from '../api'
+import { useNavigate } from "react-router-dom";
 
 function SetupAccount() {
 	const token = useMemo(() => new URLSearchParams(window.location.search).get('token') || '', [])
@@ -10,6 +11,7 @@ function SetupAccount() {
 	const [message, setMessage] = useState('')
 	const [error, setError] = useState('')
 	const [isSubmitting, setIsSubmitting] = useState(false)
+	const navigate = useNavigate()
 
 	useEffect(() => {
 		const fetchAdmin = async () => {
@@ -24,6 +26,7 @@ function SetupAccount() {
 					params: { token },
 				})
 				setAdminInfo(response.data)
+				
 			} catch (err) {
 				setError(err.response?.data?.message || 'Could not verify setup link. Please try again.')
 			} finally {
@@ -55,6 +58,7 @@ function SetupAccount() {
 
 			setMessage(response.data.message || 'Account created successfully.')
 			setFormData({ username: '', password: '', confirm_password: '' })
+			navigate('/')
 		} catch (err) {
 			setError(err.response?.data?.message || 'Server error. Please try again later.')
 		} finally {
