@@ -10,7 +10,7 @@ def get_db_connection():
     return conn
 
 def init_db():
-    query = """
+    admin_query = """
     CREATE TABLE IF NOT EXISTS admins (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         first_name TEXT NOT NULL,
@@ -25,8 +25,22 @@ def init_db():
         updated_at TEXT NOT NULL
     )
     """
+
+    member_query = """
+    CREATE TABLE IF NOT EXISTS members (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        admin_username TEXT NOT NULL,
+        name TEXT NOT NULL,
+        date_of_birth TEXT NOT NULL,
+        contactNumber TEXT NOT NULL UNIQUE,
+        member_id TEXT NOT NULL UNIQUE,
+        datasetPath TEXT NOT NULL UNIQUE
+    )
+    """
+
     with get_db_connection() as conn:
-        conn.execute(query)
+        conn.execute(admin_query)
+        conn.execute(member_query)
         conn.commit()
 
 init_db()

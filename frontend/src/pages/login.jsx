@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import api from '../api'
 import { getAuthToken, setAuthSession } from '../auth'
 
@@ -14,7 +14,7 @@ function Login() {
 
 	useEffect(() => {
 		if (getAuthToken()) {
-			navigate('/dashboard')
+			navigate('/home')
 		}
 	}, [navigate])
 
@@ -31,7 +31,7 @@ function Login() {
 		try {
 			const response = await api.post('/api/login', formData)
 			setAuthSession(response.data.token, response.data.user)
-			navigate('/dashboard')
+			navigate('/home')
 		} catch (err) {
 			setError(err.response?.data?.message || 'Login failed. Please check your username and password.')
 		} finally {
@@ -40,10 +40,10 @@ function Login() {
 	}
 
 	return (
-		<main className="min-h-screen bg-[var(--color-background)] text-[var(--color-text)]">
+		<main className="min-h-screen bg-background text-text">
 			<section className="mx-auto flex min-h-screen w-full max-w-6xl flex-col items-center justify-center px-4 py-8 sm:px-6 lg:px-8">
 				<div className="grid w-full overflow-hidden rounded-3xl border border-white/40 bg-white shadow-2xl md:grid-cols-2">
-					<div className="relative hidden overflow-hidden bg-gradient-to-br from-[var(--color-secondary)] via-[var(--color-secondary)] to-[var(--color-primary)] p-8 text-white md:block lg:p-12">
+					<div className="relative hidden overflow-hidden bg-linear-to-br from-secondary via-secondary to-primary p-8 text-white md:block lg:p-12">
 						<div className="absolute -left-16 -top-16 h-44 w-44 rounded-full bg-white/10" />
 						<div className="absolute -bottom-20 -right-10 h-56 w-56 rounded-full bg-white/10" />
 						<div className="relative z-10 space-y-5">
@@ -62,7 +62,7 @@ function Login() {
 					<div className="p-6 sm:p-8 lg:p-12">
 						<div className="mx-auto w-full max-w-md space-y-6">
 							<header className="space-y-2 md:hidden">
-								<p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-secondary)]">
+								<p className="text-xs font-semibold uppercase tracking-[0.2em] text-secondary">
 									Attendance Portal
 								</p>
 								<h1 className="text-2xl font-bold">Welcome Back</h1>
@@ -70,16 +70,14 @@ function Login() {
 
 							<header className="hidden space-y-2 md:block">
 								<h2 className="text-3xl font-bold">Login</h2>
-								<p className="text-sm text-slate-500">Use your username and password.</p>
+								<p className="text-sm text-slate-500">Use your verified account credentials.</p>
 							</header>
 
 							<form className="space-y-5" onSubmit={handleSubmit}>
-								{error ? (
-									<p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>
-								) : null}
+								{error ? <p className="rounded-lg bg-accent2-light/30 px-3 py-2 text-sm text-accent2">{error}</p> : null}
 
 								<div className="space-y-2">
-									<label htmlFor="username" className="text-sm font-medium text-slate-700">
+									<label htmlFor="username" className="text-sm font-medium text-text-muted">
 										User Name
 									</label>
 									<input
@@ -90,13 +88,13 @@ function Login() {
 										value={formData.username}
 										onChange={handleChange}
 										placeholder="Enter your username"
-										className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-[var(--color-secondary)] focus:ring-2 focus:ring-[var(--color-secondary)]/20"
+										className="theme-input"
 										required
 									/>
 								</div>
 
 								<div className="space-y-2">
-									<label htmlFor="password" className="text-sm font-medium text-slate-700">
+									<label htmlFor="password" className="text-sm font-medium text-text-muted">
 										Password
 									</label>
 									<input
@@ -107,7 +105,7 @@ function Login() {
 										value={formData.password}
 										onChange={handleChange}
 										placeholder="Enter your password"
-										className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-[var(--color-secondary)] focus:ring-2 focus:ring-[var(--color-secondary)]/20"
+										className="theme-input"
 										required
 									/>
 								</div>
@@ -115,10 +113,14 @@ function Login() {
 								<button
 									type="submit"
 									disabled={isSubmitting}
-									className="w-full rounded-xl bg-[var(--color-primary)] px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-[var(--color-primary)]/30 transition hover:brightness-110 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/40"
+									className="theme-btn-primary w-full py-3 focus:outline-none focus:ring-2 focus:ring-primary/40"
 								>
 									{isSubmitting ? 'Signing In...' : 'Sign In'}
 								</button>
+
+								<p className="text-sm text-text-muted">
+									New user? <Link to="/signup" className="font-semibold text-secondary">Create account</Link>
+								</p>
 							</form>
 						</div>
 					</div>

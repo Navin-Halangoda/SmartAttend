@@ -1,9 +1,79 @@
 @import "tailwindcss";
+
 @theme {
-  --color-primary: #4CAF50;      /* Main actions, Present */
-  --color-secondary: #1E3A8A;    /* Navbar, secondary elements */
-  --color-accent1: #FB923C;      /* Warnings, Late */
-  --color-accent2: #EF4444;      /* Errors, Absent */
-  --color-background: #F3F4F6;   /* Page background */
-  --color-text: #111827;         /* Default text color */
+  --font-sans: "Poppins", "Segoe UI", sans-serif;
+
+  --color-primary: #4CAF50;
+  --color-primary-dark: #2E7D32;
+  --color-primary-light: #BBF7D0;
+
+  --color-secondary: #1E3A8A;
+  --color-secondary-light: #60A5FA;
+
+  --color-accent1: #FB923C;
+  --color-accent2: #EF4444;
+  --color-accent2-light: #FECACA;
+
+  --color-background: #F3F4F6;
+  --color-surface: #FFFFFF;
+  --color-border: #E5E7EB;
+
+  --color-text: #111827;
+  --color-text-muted: #6B7280;
 }
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background:
+      radial-gradient(circle at 0% 0%, rgb(76 175 80 / 0.12), transparent 35%),
+      radial-gradient(circle at 100% 20%, rgb(30 58 138 / 0.12), transparent 35%),
+      var(--color-background);
+    color: var(--color-text);
+    font-family: var(--font-sans);
+  }
+
+  #root {
+    min-height: 100vh;
+  }
+}
+
+@layer components {
+  .theme-card {
+    @apply rounded-2xl border border-border bg-surface shadow-lg;
+  }
+
+  .theme-input {
+    @apply w-full rounded-xl border border-border bg-surface px-4 py-3 text-sm outline-none transition;
+    @apply focus:border-secondary focus:ring-2 focus:ring-secondary/20;
+  }
+
+  .theme-btn-primary {
+    @apply rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-white transition;
+    @apply hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60;
+  }
+
+  .theme-btn-secondary {
+    @apply rounded-xl bg-secondary px-4 py-2 text-sm font-semibold text-white transition;
+    @apply hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60;
+  }
+
+  .sidebar-item {
+  @apply flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-text-muted transition;
+  @apply hover:bg-primary/10 hover:text-primary;
+}
+
+.sidebar-item.active {
+  @apply bg-primary text-white shadow-md;
+}
+
+.sidebar-icon {
+  @apply h-5 w-5;
+}
+}
+

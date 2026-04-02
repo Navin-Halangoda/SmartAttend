@@ -1,23 +1,20 @@
 import Login from './pages/login'
-import RegisterAdmin from './pages/register_admin'
-import SetupAccount from './pages/setup_account'
-import Dashboard from './pages/dashboard'
-import Profile from './pages/profile'
-import Users from './pages/users'
+import Signup from './pages/signup'
+import VerifyOtp from './pages/verify_otp'
+import Dashboard from './pages/Home'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import ProtectedRoute from './components/ProtectedRoute'
+import Home from './pages/Home'
 
 function App() {
   return (
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Login />} />
-        <Route path="/setup-account" element={<SetupAccount />} />
+        <Route path="/signup" element={<Signup />} />
+        <Route path="/verify-otp" element={<VerifyOtp />} />
         <Route element={<ProtectedRoute />}>
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/profile" element={<Profile />} />
-          <Route path="/users" element={<Users />} />
-          <Route path="/register-admin" element={<RegisterAdmin />} />
+          <Route path="/Home/*" element={<Home />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
