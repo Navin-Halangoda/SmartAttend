@@ -38,9 +38,32 @@ def init_db():
     )
     """
 
+    attendance_query = """
+    CREATE TABLE IF NOT EXISTS attendance (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        admin_username TEXT NOT NULL,
+        name TEXT NOT NULL,
+        member_id TEXT NOT NULL,
+        date TEXT NOT NULL,
+        time TEXT NOT NULL,
+        UNIQUE(admin_username, member_id, date)
+    )
+    """
+
+    camera_settings_query = """
+    CREATE TABLE IF NOT EXISTS camera_settings (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        admin_id INTEGER NOT NULL UNIQUE,
+        add_member_camera TEXT,
+        attendance_camera TEXT
+    )
+    """
+
     with get_db_connection() as conn:
         conn.execute(admin_query)
         conn.execute(member_query)
+        conn.execute(attendance_query)
+        conn.execute(camera_settings_query)
         conn.commit()
 
 init_db()

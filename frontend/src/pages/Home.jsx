@@ -3,7 +3,7 @@ import { clearAuthSession, getAuthUser } from '../auth'
 import '../index.css'
 import Dashbord from './Dashbord.jsx'
 import AddMember from './AddMember.jsx'
-import Profile from './profile.jsx'
+import Profile from './Profile.jsx'
 import Setting from './Setting.jsx'
 
 function Home() {
