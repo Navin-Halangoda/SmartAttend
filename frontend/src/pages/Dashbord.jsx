@@ -30,7 +30,7 @@ export default function Dashbord() {
     setError('');
     setIscapture(true);
     try {
-      const response = await api.patch('/api/members/attendence');
+      const response = await api.patch('/api/members/attendance');
       setMessage(response.data?.message || 'Attendence taken successfully.');
       await fetchAttendance();
     } catch (err) {

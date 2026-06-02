@@ -1,11 +1,14 @@
 import os
 import csv
+import shutil
 
 import cv2
 from flask import Blueprint, g, jsonify, request
 import numpy as np
 from datetime import datetime
-from sklearn.neighbors import KNeighborsClassifier
+from sklearn.decomposition import PCA
+from sklearn.pipeline import Pipeline
+from sklearn.svm import SVC
 import mediapipe as mp
 
 from auth.jwt_auth import require_auth
@@ -70,6 +73,8 @@ def capture_image(save_path, camera_source):
 
 
 member_bp = Blueprint("member_bp", __name__)
+COMMON_UNKNOWN_DATASET_PATH = "datasets/unknown_0"
+UNKNOWN_LABELS = "unknown"
 
 
 def _parse_member_payload(data):
@@ -103,6 +108,55 @@ def _ensure_attendance_file(file_name):
         with open(file_name, "w", newline="", encoding="utf-8") as f:
             writer = csv.writer(f)
             writer.writerow(["Name", "Member ID", "Date", "Time"])
+
+
+def _collect_face_samples(dataset_root, label_override=None):
+    faces = []
+    labels = []
+
+    if not os.path.isdir(dataset_root):
+        return faces, labels
+
+    def _append_image_samples(img_path, label_name):
+        img = cv2.imread(img_path)
+
+        if img is None:
+            return
+
+        rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb)
+        detection_result = detector.detect(mp_image)
+
+        if detection_result.detections:
+            for detection in detection_result.detections:
+                bbox = detection.bounding_box
+                x, y, w, h = bbox.origin_x, bbox.origin_y, bbox.width, bbox.height
+
+                face = img[y:y+h, x:x+w]
+
+                if face.size == 0:
+                    continue
+
+                face = cv2.resize(face, (50, 50))
+                face = cv2.cvtColor(face, cv2.COLOR_BGR2GRAY)
+
+                faces.append(face.flatten())
+                labels.append(label_name)
+
+    for entry in os.listdir(dataset_root):
+        entry_path = os.path.join(dataset_root, entry)
+
+        if os.path.isdir(entry_path):
+            for img_name in os.listdir(entry_path):
+                _append_image_samples(os.path.join(entry_path, img_name), label_override or entry)
+        elif label_override is not None and os.path.isfile(entry_path):
+            _append_image_samples(entry_path, label_override)
+
+    return faces, labels
+
+
+def _is_unknown_label(label):
+    return str(label or "").strip().lower() == UNKNOWN_LABELS
 
 
 def markAttendance(admin_username, name, member_id):
@@ -142,6 +196,23 @@ def markAttendance(admin_username, name, member_id):
 
     print(f"Attendance marked: {name}")
     return True
+
+
+def _prepare_face_feature(face):
+    face_resized = cv2.resize(face, (50, 50))
+    face_gray = cv2.cvtColor(face_resized, cv2.COLOR_BGR2GRAY)
+    return face_gray.flatten().reshape(1, -1)
+
+
+def _predict_member_identity(model, face_flat):
+    prediction = model.predict(face_flat)[0]
+    if _is_unknown_label(prediction):
+        return None, None
+
+    if "_" not in prediction:
+        return None, None
+
+    return prediction.rsplit("_", 1)
 
 
 def remove_attendance_from_csv(admin_username, name, member_id, date, time):
@@ -267,9 +338,15 @@ def remove_member(row_id):
     if not admin_username:
         return jsonify({"message": "Admin username not found in token payload."}), 401
 
-    deleted = delete_member(admin_username=admin_username, row_id=row_id)
+    deleted, row = delete_member(admin_username=admin_username, row_id=row_id)
     if not deleted:
         return jsonify({"message": "Member not found."}), 404
+
+    dataset_path = (row or {}).get("datasetPath")
+    if dataset_path:
+        absolute_dataset_path = os.path.abspath(dataset_path)
+        if os.path.isdir(absolute_dataset_path):
+            shutil.rmtree(absolute_dataset_path)
 
     return jsonify({"message": "Member deleted successfully."}), 200
 
@@ -305,7 +382,6 @@ def remove_attendance(row_id):
     )
     return jsonify({"message": "Attendance deleted successfully."}), 200
 
-@member_bp.route("/api/members/attendence", methods=["PATCH"])
 @member_bp.route("/api/members/attendance", methods=["PATCH"])
 @require_auth
 def mark_attendence():
@@ -322,49 +398,28 @@ def mark_attendence():
     if not os.path.isdir(path):
         return jsonify({"message": "No dataset found for this admin."}), 400
 
-    faces = []
-    labels = []
-
-    for person in os.listdir(path):
-        person_path = os.path.join(path, person)
-
-        if os.path.isdir(person_path):
-            for img_name in os.listdir(person_path):
-                img_path = os.path.join(person_path, img_name)
-                img = cv2.imread(img_path)
-
-                if img is None:
-                    continue
-
-                rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-
-                # Convert to MediaPipe Image
-                mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb)
-
-                detection_result = detector.detect(mp_image)
-
-                if detection_result.detections:
-                    for detection in detection_result.detections:
-                        bbox = detection.bounding_box
-
-                        x, y, w, h = bbox.origin_x, bbox.origin_y, bbox.width, bbox.height
-
-                        face = img[y:y+h, x:x+w]
-
-                        if face.size == 0:
-                            continue
-
-                        face = cv2.resize(face, (100, 100))
-                        face = cv2.cvtColor(face, cv2.COLOR_BGR2GRAY)
-
-                        faces.append(face.flatten())
-                        labels.append(person)
+    faces, labels = _collect_face_samples(path)
+    unknown_faces, unknown_labels = _collect_face_samples(COMMON_UNKNOWN_DATASET_PATH, label_override="Unknown")
+    faces.extend(unknown_faces)
+    labels.extend(unknown_labels)
 
     if not faces:
         return jsonify({"message": "No valid face data found in dataset."}), 400
 
-    knn = KNeighborsClassifier(n_neighbors=3)
-    knn.fit(faces, labels)
+    unique_labels = set(labels)
+    if len(unique_labels) < 2:
+        return jsonify({"message": "At least two labeled face classes are required to train the SVM model."}), 400
+
+    face_matrix = np.asarray(faces)
+    pca_components = min(150, face_matrix.shape[0], face_matrix.shape[1])
+    if pca_components < 1:
+        return jsonify({"message": "No usable face samples found for PCA training."}), 400
+
+    model = Pipeline([
+        ("pca", PCA(n_components=pca_components)),
+        ("svm", SVC(kernel="rbf")),
+    ])
+    model.fit(face_matrix, labels)
 
     cap = cv2.VideoCapture(attendance_camera)
     newly_marked = 0
@@ -394,12 +449,15 @@ def mark_attendence():
                 if face.size == 0:
                     continue
 
-                face_resized = cv2.resize(face, (100, 100))
-                face_gray = cv2.cvtColor(face_resized, cv2.COLOR_BGR2GRAY)
-                face_flat = face_gray.flatten().reshape(1, -1)
+                face_flat = _prepare_face_feature(face)
 
-                name = knn.predict(face_flat)[0]
-                name, member_id = name.rsplit("_", 1)
+                name, member_id = _predict_member_identity(model, face_flat)
+
+                if name is None:
+                    cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 0, 255), 2)
+                    cv2.putText(frame, "Unknown", (x, y-10),
+                                cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+                    continue
 
                 if markAttendance(admin_username, name, member_id):
                     newly_marked += 1

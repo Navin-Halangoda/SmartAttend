@@ -70,9 +70,19 @@ def update_member(admin_username, row_id, name, date_of_birth, contact_number, m
 
 def delete_member(admin_username, row_id):
     with get_db_connection() as conn:
+        row = conn.execute(
+            "SELECT id, datasetPath FROM members WHERE id = ? AND admin_username = ?",
+            (row_id, admin_username),
+        ).fetchone()
+        if not row:
+            return False, None
+
         cursor = conn.execute(
             "DELETE FROM members WHERE id = ? AND admin_username = ?",
             (row_id, admin_username),
         )
         conn.commit()
-        return cursor.rowcount > 0
+        if cursor.rowcount == 0:
+            return False, None
+
+        return True, dict(row)
